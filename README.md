@@ -1,36 +1,108 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Toll Plaza Ledger
 
-## Getting Started
+**Automated Toll Plaza & RFID Vehicle Movement Ledger**
+DBMS Experiential Learning, Level 3 Project (PES University)
 
-First, run the development server:
+A web application that processes RFID toll payments, keeps a financial ledger, and tracks vehicle movement across a highway network.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Team
+
+| Name | SRN | Main responsibilities |
+|---|---|---|
+|Sriya Dasari | PES2UG24CS522 | _e.g. MySQL schema, procedures, triggers, toll API_ |
+|Srotaswini Das | PES2UG24CS525 | _e.g. Next.js interface, Neo4j queries, documentation_ |
+
+## Why two databases
+
+| Data | Database | Reason |
+|---|---|---|
+| Owners, vehicles, tags, balances, lanes, transactions, users | **MySQL** | Structured data that needs ACID transactions, foreign keys and constraints (a toll deduction and its ledger entry must succeed or fail together). |
+| Plaza network and vehicle journeys | **Neo4j** | Connected data. Route finding and impossible-travel detection are path queries, which are direct traversals in a graph but need recursive self-joins in SQL. |
+
+MySQL is the source of truth. After each toll transaction the API records the journey in Neo4j.
+
+## Tech stack
+
+- Frontend and API: Next.js (App Router, Route Handlers), Tailwind CSS
+- SQL database: MySQL 8
+- Graph database: Neo4j
+- Authentication: bcrypt password hashing, JWT session cookie, roles Admin and Staff
+
+## Features
+
+- Role-based login (Admin, Staff)
+- Toll processing through the `process_toll` stored procedure (transaction with row locking)
+- Triggers: auto-block a tag at zero balance, audit log of balance changes
+- Views, function, indexes, full-text search, CHECK/UNIQUE/FOREIGN KEY constraints
+- Neo4j: vehicle journey trace, shortest route, suspicious movement detection
+
+## Setup
+
+### Prerequisites
+
+- Node.js 20 or newer
+- MySQL 8 and MySQL Workbench
+- Neo4j Desktop
+
+### 1. Clone and install
+
+```
+git clone <repository-url>
+cd toll-plaza-app
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Copy `.env.example` to `.env.local` and fill in your own values. Never commit `.env.local`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+copy .env.example .env.local
+```
 
-## Learn More
+### 3. MySQL
 
-To learn more about Next.js, take a look at the following resources:
+Open `database/toll_plaza_complete.sql` in MySQL Workbench, select all, and run it with Execute All. It drops and recreates the `toll_plaza_ledger` database, then creates the tables, views, procedures, triggers and sample data.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 4. Neo4j
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. In Neo4j Desktop create an instance named `toll-plaza`, set a password, and start it.
+2. Open Query and run the statements in `database/toll_plaza_neo4j.cypher` one section at a time, in order (skip section 0 on a fresh instance).
+3. Check: `MATCH (n) RETURN labels(n), count(*)` should show Plaza 5 and Vehicle 6.
 
-## Deploy on Vercel
+### 5. Demo users
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+node --env-file=.env.local scripts/set-passwords.mjs
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Username | Password | Role |
+|---|---|---|
+| admin | Admin@123 | Admin |
+| ramesh | Staff@123 | Staff |
+| suresh | Staff@123 | Staff |
+
+### 6. Run
+
+```
+npm run dev
+```
+
+Open http://localhost:3000 and check http://localhost:3000/api/health (both databases should report `ok: true`).
+
+## Project structure
+
+```
+app/                 pages and API route handlers
+  api/auth/          login, logout, current user
+  api/toll/          toll processing endpoints
+  dashboard/         protected pages
+lib/                 mysql.js, neo4j.js, auth.js
+components/          shared React components
+database/            SQL and Cypher scripts
+scripts/             helper scripts
+```
+
+## Documentation
+
+ER diagram, relational schema, data dictionary, queries, screenshots and test results are in the project report.
