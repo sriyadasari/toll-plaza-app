@@ -78,9 +78,9 @@ node --env-file=.env.local scripts/set-passwords.mjs
 
 | Username | Password | Role |
 |---|---|---|
-| admin | Admin@123 | Admin |
-| ramesh | Staff@123 | Staff |
-| suresh | Staff@123 | Staff |
+| admin | password123 | Admin |
+| ramesh | Ramesh@2026 | Staff |
+| suresh | Suresh@2026 | Staff |
 
 ### 6. Run
 
